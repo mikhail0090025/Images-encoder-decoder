@@ -1,0 +1,1 @@
+start_resolution = (100, 100)
