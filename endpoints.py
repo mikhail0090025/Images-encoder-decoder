@@ -36,7 +36,13 @@ def root():
         image_pairs = nn.combine_image_pairs([
             (nn.tanh_to_img(nn.images[0]), nn.tanh_to_img(nn.code_and_decode(nn.images[0]))),
             (nn.tanh_to_img(nn.images[500]), nn.tanh_to_img(nn.code_and_decode(nn.images[500]))),
-            (nn.tanh_to_img(nn.images[1000]), nn.tanh_to_img(nn.code_and_decode(nn.images[1000])))])
+            (nn.tanh_to_img(nn.images[1000]), nn.tanh_to_img(nn.code_and_decode(nn.images[1000]))),
+            (nn.tanh_to_img(nn.images[1500]), nn.tanh_to_img(nn.code_and_decode(nn.images[1500]))),
+            (nn.tanh_to_img(nn.images[2000]), nn.tanh_to_img(nn.code_and_decode(nn.images[2000]))),
+            (nn.tanh_to_img(nn.images[2500]), nn.tanh_to_img(nn.code_and_decode(nn.images[2500]))),
+            (nn.tanh_to_img(nn.images[3000]), nn.tanh_to_img(nn.code_and_decode(nn.images[3000]))),
+            (nn.tanh_to_img(nn.images[-1]), nn.tanh_to_img(nn.code_and_decode(nn.images[-1]))),
+        ])
         img = Image.fromarray(image_pairs)
 
         img_byte_arr = io.BytesIO()
@@ -50,7 +56,7 @@ def root():
 @app.post("/one_epoch")
 def one_epoch_endpoint():
     try:
-        nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.BCELoss(), nn.optimizer, 0)
+        nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer, 0)
         return Response("One epoch passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
@@ -59,7 +65,7 @@ def one_epoch_endpoint():
 def five_epochs_endpoint():
     try:
         for i in range(5):
-            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.BCELoss(), nn.optimizer, i)
+            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer, i)
         return Response("5 epochs passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
@@ -68,7 +74,7 @@ def five_epochs_endpoint():
 def ten_epochs_endpoint():
     try:
         for i in range(10):
-            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.BCELoss(), nn.optimizer, i)
+            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer, i)
         return Response("10 epochs passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
