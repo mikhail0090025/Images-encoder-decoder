@@ -18,8 +18,8 @@ class LearningDataset(Dataset):
         # Определяем трансформации для аугментации
         self.transform = transforms.Compose([
             transforms.RandomHorizontalFlip(p=0.5),
-            # transforms.RandomRotation(1),
-            # transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
+            transforms.RandomRotation(15),
+            transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
             transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
         ])
 
@@ -56,7 +56,8 @@ class Encoder(nn.Module):
             nn.LeakyReLU(0.2),
 
             nn.Flatten(),
-            nn.Linear(64 * 25 * 25, latent_dim)
+            nn.Linear(64 * 25 * 25, 8192),
+            nn.Linear(8192, latent_dim),
             # nn.Tanh(),
         ])
     
@@ -71,7 +72,8 @@ class Decoder(nn.Module):
 
         self.all_layers = nn.ModuleList([
             # Input
-            nn.Linear(latent_dim, 64 * 25 * 25),
+            nn.Linear(latent_dim, 8192),
+            nn.Linear(8192, 64 * 25 * 25),
             nn.Unflatten(1, (64, 25, 25)),
             
             # 25x25 => 50x50
@@ -128,6 +130,12 @@ import download_dataset as dd
 images = dd.get_images()
 
 full_encoder = FullEncoder().to(device)
+
+dataset = LearningDataset(images)
+dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+optimizer = optim.Adam(full_encoder.parameters(), lr=0.0005)
+from torch.optim.lr_scheduler import StepLR
+scheduler = StepLR(optimizer, step_size=5, gamma=0.2)
 
 def get_latent(image):
     with torch.no_grad():
@@ -224,6 +232,22 @@ def combine_image_pairs(image_pairs):
 
     return combined_img
 
+def one_batch(model, dataloader, criterion, optimizer):
+    model.train()
+    batch_loss = 0
+    batch = next(iter(dataloader))
+    batch = batch.to(device)
+    optimizer.zero_grad()
+    output = model(batch)
+    loss = criterion(output, batch)
+    loss.backward()
+    optimizer.step()
+    batch_loss += loss.item()
+    print(f'Batch Loss: {loss.item():.4f}')
+    
+    print(f'Batch completed, Average Loss: {batch_loss:.4f}')
+    return batch_loss
+
 def one_epoch(model, dataloader, criterion, optimizer, epoch):
     model.train()
     epoch_loss = 0
@@ -244,6 +268,7 @@ def one_epoch(model, dataloader, criterion, optimizer, epoch):
     
     epoch_loss = epoch_loss / len(dataloader)
     print(f'Epoch {epoch+1} completed, Average Loss: {epoch_loss:.4f}')
+    scheduler.step()
     return epoch_loss
 
 latent = get_latent(images[0])
@@ -260,10 +285,6 @@ def code_and_decode(img_array):
 
 def tanh_to_img(array):
     return ((array + 1) * 127.5).astype(np.uint8)
-
-dataset = LearningDataset(images)
-dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
-optimizer = optim.Adam(full_encoder.parameters(), lr=0.0002)
 
 # for i in range(1):
 #     one_epoch(full_encoder, dataloader, nn.MSELoss(), optimizer, i)

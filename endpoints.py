@@ -35,12 +35,13 @@ def root():
     try:
         image_pairs = nn.combine_image_pairs([
             (nn.tanh_to_img(nn.images[0]), nn.tanh_to_img(nn.code_and_decode(nn.images[0]))),
+            (nn.tanh_to_img(nn.images[100]), nn.tanh_to_img(nn.code_and_decode(nn.images[100]))),
+            (nn.tanh_to_img(nn.images[200]), nn.tanh_to_img(nn.code_and_decode(nn.images[200]))),
+            (nn.tanh_to_img(nn.images[300]), nn.tanh_to_img(nn.code_and_decode(nn.images[300]))),
+            (nn.tanh_to_img(nn.images[400]), nn.tanh_to_img(nn.code_and_decode(nn.images[400]))),
             (nn.tanh_to_img(nn.images[500]), nn.tanh_to_img(nn.code_and_decode(nn.images[500]))),
-            (nn.tanh_to_img(nn.images[1000]), nn.tanh_to_img(nn.code_and_decode(nn.images[1000]))),
-            (nn.tanh_to_img(nn.images[1500]), nn.tanh_to_img(nn.code_and_decode(nn.images[1500]))),
-            (nn.tanh_to_img(nn.images[2000]), nn.tanh_to_img(nn.code_and_decode(nn.images[2000]))),
-            (nn.tanh_to_img(nn.images[2500]), nn.tanh_to_img(nn.code_and_decode(nn.images[2500]))),
-            (nn.tanh_to_img(nn.images[3000]), nn.tanh_to_img(nn.code_and_decode(nn.images[3000]))),
+            (nn.tanh_to_img(nn.images[600]), nn.tanh_to_img(nn.code_and_decode(nn.images[600]))),
+            (nn.tanh_to_img(nn.images[700]), nn.tanh_to_img(nn.code_and_decode(nn.images[700]))),
             (nn.tanh_to_img(nn.images[-1]), nn.tanh_to_img(nn.code_and_decode(nn.images[-1]))),
         ])
         img = Image.fromarray(image_pairs)
@@ -58,6 +59,14 @@ def one_epoch_endpoint():
     try:
         nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer, 0)
         return Response("One epoch passed")
+    except Exception as e:
+        return Response(f"Internal server error: {e}", 500)
+
+@app.post("/one_batch")
+def one_batch_endpoint():
+    try:
+        nn.one_batch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer)
+        return Response("One batch passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
 
