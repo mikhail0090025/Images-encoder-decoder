@@ -34,7 +34,7 @@ def get_images():
     all_dirs = os.listdir(os.path.join(path, 'natural_images'))
     for directory in all_dirs:
         print(f"Path: {os.path.join(path, 'natural_images', directory)}")
-        max_files_for_folder = 200
+        max_files_for_folder = 400
         for image_path in os.listdir(os.path.join(path, 'natural_images', directory))[:max_files_for_folder]:
             img = image_to_numpy(os.path.join(path, 'natural_images', directory, image_path))
             images.append(img)
