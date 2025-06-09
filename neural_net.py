@@ -240,7 +240,7 @@ def one_epoch(model, dataloader, criterion, optimizer, epoch):
         epoch_loss += loss.item()
         if i == 0 and epoch == 0:
             print(f"Loss at start: {loss.item()}")
-        # print(f'Epoch {epoch+1}, Batch {i+1}, Loss: {loss.item():.4f}')
+        print(f'Epoch {epoch+1}, Batch {i+1}/{len(dataloader)}, Loss: {loss.item():.4f}')
     
     epoch_loss = epoch_loss / len(dataloader)
     print(f'Epoch {epoch+1} completed, Average Loss: {epoch_loss:.4f}')
