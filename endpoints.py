@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 import neural_net as nn
 import io
 from PIL import Image
+import plotly.graph_objects as go
 
 app = FastAPI()
 
@@ -31,17 +32,17 @@ def root(request: Request):
         return Response(f"Internal server error: {e}", 500)
 
 @app.get("/test_image")
-def root():
+def test_image_endpoint():
     try:
         image_pairs = nn.combine_image_pairs([
             (nn.tanh_to_img(nn.images[0]), nn.tanh_to_img(nn.code_and_decode(nn.images[0]))),
-            (nn.tanh_to_img(nn.images[100 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[100 * 3]))),
-            (nn.tanh_to_img(nn.images[200 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[200 * 3]))),
-            (nn.tanh_to_img(nn.images[300 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[300 * 3]))),
-            (nn.tanh_to_img(nn.images[400 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[400 * 3]))),
-            (nn.tanh_to_img(nn.images[500 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[500 * 3]))),
-            (nn.tanh_to_img(nn.images[600 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[600 * 3]))),
-            (nn.tanh_to_img(nn.images[700 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[700 * 3]))),
+            (nn.tanh_to_img(nn.images[100 * 4]), nn.tanh_to_img(nn.code_and_decode(nn.images[100 * 4]))),
+            (nn.tanh_to_img(nn.images[200 * 4]), nn.tanh_to_img(nn.code_and_decode(nn.images[200 * 4]))),
+            (nn.tanh_to_img(nn.images[300 * 4]), nn.tanh_to_img(nn.code_and_decode(nn.images[300 * 4]))),
+            (nn.tanh_to_img(nn.images[400 * 4]), nn.tanh_to_img(nn.code_and_decode(nn.images[400 * 4]))),
+            (nn.tanh_to_img(nn.images[500 * 4]), nn.tanh_to_img(nn.code_and_decode(nn.images[500 * 4]))),
+            (nn.tanh_to_img(nn.images[600 * 4]), nn.tanh_to_img(nn.code_and_decode(nn.images[600 * 4]))),
+            (nn.tanh_to_img(nn.images[700 * 4]), nn.tanh_to_img(nn.code_and_decode(nn.images[700 * 4]))),
             (nn.tanh_to_img(nn.images[-1]), nn.tanh_to_img(nn.code_and_decode(nn.images[-1]))),
         ])
         img = Image.fromarray(image_pairs)
@@ -54,10 +55,33 @@ def root():
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
 
+@app.get("/get_graphics")
+def get_graphics_endpoint():
+    try:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=[i+1 for i in range(len(nn.all_losses))], 
+            y=nn.all_losses,
+            mode='lines+markers',
+            name='Loss'))
+        fig.update_layout(
+            title="Loss Graph",
+            xaxis_title="Epoch",
+            yaxis_title="Loss",
+            template="plotly_dark"  # Optional: Use a dark theme
+        )
+
+        # Show the figure
+        fig.show()
+        return fig
+    except Exception as e:
+        return Response(f"Unexpected error has occured: {e}")
+
+
 @app.post("/one_epoch")
 def one_epoch_endpoint():
     try:
-        nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.L1Loss(), nn.optimizer, 0)
+        nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer, 0)
         return Response("One epoch passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
@@ -65,7 +89,7 @@ def one_epoch_endpoint():
 @app.post("/one_batch")
 def one_batch_endpoint():
     try:
-        nn.one_batch(nn.full_encoder, nn.dataloader, nn.nn.L1Loss(), nn.optimizer)
+        nn.one_batch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer)
         return Response("One batch passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
@@ -74,7 +98,7 @@ def one_batch_endpoint():
 def five_epochs_endpoint():
     try:
         for i in range(5):
-            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.L1Loss(), nn.optimizer, i)
+            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer, i)
         return Response("5 epochs passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
@@ -83,7 +107,7 @@ def five_epochs_endpoint():
 def ten_epochs_endpoint():
     try:
         for i in range(10):
-            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.L1Loss(), nn.optimizer, i)
+            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer, i)
         return Response("10 epochs passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)

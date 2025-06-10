@@ -2,3 +2,4 @@
 images.npz
 /__pycache__
 images.npz
+*.pyc

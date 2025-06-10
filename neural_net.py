@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+all_losses = []
 
 class LearningDataset(Dataset):
     def __init__(self, images):
@@ -28,8 +29,8 @@ class LearningDataset(Dataset):
 
     def __getitem__(self, idx):
         image = self.images[idx]
-        if self.transform:
-            image = self.transform(image)
+        # if self.transform:
+        #     image = self.transform(image)
         return image
 
 class Encoder(nn.Module):
@@ -80,22 +81,23 @@ class Decoder(nn.Module):
             nn.LeakyReLU(0.2),
 
             nn.Upsample(scale_factor=2, mode='nearest'),  # 50x50 => 100x100
-            nn.Conv2d(64, 32, 3, padding=1),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(64, 64, 3, padding=1),
+            nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
 
-            nn.Conv2d(32, 32, 3, padding=1),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(64, 64, 3, padding=1),
+            nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
 
-            nn.Conv2d(32, 32, 3, padding=1),
-            nn.Conv2d(32, 3, 3, padding=1),
-            nn.Tanh(),
+            nn.Conv2d(64, 64, 3, padding=1),
+            nn.Conv2d(64, 3, 3, padding=1),
+            # nn.Tanh(),
         ])
     
     def forward(self, x):
         for layer in self.all_layers:
             x = layer(x)
+        x = x.clamp(-1, 1)
         return x
 
 class FullEncoder(nn.Module):
@@ -117,6 +119,7 @@ class FullEncoder(nn.Module):
         return x
 
 import download_dataset as dd
+from torch.optim.lr_scheduler import StepLR
 
 images = dd.get_images()
 
@@ -124,8 +127,8 @@ full_encoder = FullEncoder().to(device)
 
 dataset = LearningDataset(images)
 dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
-optimizer = optim.Adam(full_encoder.parameters(), lr=0.00002)
-from torch.optim.lr_scheduler import StepLR
+optimizer = optim.Adam(full_encoder.parameters(), lr=0.0002)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.2, patience=1)
 # scheduler = StepLR(optimizer, step_size=5, gamma=0.2)
 
 def get_latent(image):
@@ -237,6 +240,7 @@ def one_batch(model, dataloader, criterion, optimizer):
     print(f'Batch Loss: {loss.item():.4f}')
     
     print(f'Batch completed, Average Loss: {batch_loss:.4f}')
+    all_losses.append(batch_loss)
     return batch_loss
 
 def one_epoch(model, dataloader, criterion, optimizer, epoch):
@@ -256,10 +260,11 @@ def one_epoch(model, dataloader, criterion, optimizer, epoch):
         if i == 0 and epoch == 0:
             print(f"Loss at start: {loss.item()}")
         print(f'Epoch {epoch+1}, Batch {i+1}/{len(dataloader)}, Loss: {loss.item():.4f}')
+        all_losses.append(loss.item())
     
     epoch_loss = epoch_loss / len(dataloader)
     print(f'Epoch {epoch+1} completed, Average Loss: {epoch_loss:.4f}')
-    # scheduler.step()
+    scheduler.step(epoch_loss)
     return epoch_loss
 
 latent = get_latent(images[0])
@@ -271,11 +276,13 @@ print(latent.shape)
 def code_and_decode(img_array):
     start_image = torch.tensor(img_array, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0).to(device)
     test_image = full_encoder(start_image).detach().cpu().numpy().squeeze(0).transpose(1, 2, 0)
+
     return test_image
     Image.open(io.BytesIO(array_to_image(test_image))).show()
 
 def tanh_to_img(array):
-    return ((array + 1) * 127.5).astype(np.uint8)
+    img_array = ((array + 1) * 127.5).astype(np.uint8)
+    return img_array
 
 # for i in range(1):
 #     one_epoch(full_encoder, dataloader, nn.MSELoss(), optimizer, i)
