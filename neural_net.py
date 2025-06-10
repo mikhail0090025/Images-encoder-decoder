@@ -80,16 +80,16 @@ class Decoder(nn.Module):
             nn.LeakyReLU(0.2),
 
             nn.Upsample(scale_factor=2, mode='nearest'),  # 50x50 => 100x100
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 32, 3, padding=1),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
 
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 32, 3, padding=1),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
 
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.Conv2d(64, 3, 3, padding=1),
+            nn.Conv2d(32, 32, 3, padding=1),
+            nn.Conv2d(32, 3, 3, padding=1),
             nn.Tanh(),
         ])
     
