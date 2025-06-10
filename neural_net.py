@@ -28,8 +28,8 @@ class LearningDataset(Dataset):
 
     def __getitem__(self, idx):
         image = self.images[idx]
-        # if self.transform:
-        #     image = self.transform(image)
+        if self.transform:
+            image = self.transform(image)
         return image
 
 class Encoder(nn.Module):
@@ -41,7 +41,6 @@ class Encoder(nn.Module):
             nn.Conv2d(3, 32, 3, padding=1, stride=2),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
-
             nn.Conv2d(32, 32, 3, padding=1, stride=1),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
@@ -50,15 +49,12 @@ class Encoder(nn.Module):
             nn.Conv2d(32, 64, 3, padding=1, stride=2),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
-
             nn.Conv2d(64, 64, 3, padding=1, stride=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
 
             nn.Flatten(),
-            nn.Linear(64 * 25 * 25, 8192),
-            nn.Linear(8192, latent_dim),
-            # nn.Tanh(),
+            nn.Linear(64 * 25 * 25, latent_dim),
         ])
     
     def forward(self, x):
@@ -71,33 +67,28 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
 
         self.all_layers = nn.ModuleList([
-            # Input
-            nn.Linear(latent_dim, 8192),
-            nn.Linear(8192, 64 * 25 * 25),
+            nn.Linear(latent_dim, 64 * 25 * 25),
             nn.Unflatten(1, (64, 25, 25)),
-            
-            # 25x25 => 50x50
-            nn.Upsample(scale_factor=2, mode='nearest'),
-            nn.Conv2d(64, 64, 3, padding=1, stride=1),
+
+            nn.Upsample(scale_factor=2, mode='nearest'),  # 25x25 => 50x50
+            nn.Conv2d(64, 64, 3, padding=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
 
-            nn.Conv2d(64, 64, 3, padding=1, stride=1),
+            nn.Conv2d(64, 64, 3, padding=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
 
-            # 50x50 => 100x100
-            nn.Upsample(scale_factor=2, mode='nearest'),
-            nn.Conv2d(64, 64, 3, padding=1, stride=1),
+            nn.Upsample(scale_factor=2, mode='nearest'),  # 50x50 => 100x100
+            nn.Conv2d(64, 64, 3, padding=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
 
-            nn.Conv2d(64, 64, 3, padding=1, stride=1),
+            nn.Conv2d(64, 64, 3, padding=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
 
-            # Last layer
-            nn.Conv2d(64, 64, 3, padding=1, stride=1),
+            nn.Conv2d(64, 64, 3, padding=1),
             nn.Conv2d(64, 3, 3, padding=1),
             nn.Tanh(),
         ])
@@ -132,10 +123,10 @@ images = dd.get_images()
 full_encoder = FullEncoder().to(device)
 
 dataset = LearningDataset(images)
-dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-optimizer = optim.Adam(full_encoder.parameters(), lr=0.0005)
+dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
+optimizer = optim.Adam(full_encoder.parameters(), lr=0.00002)
 from torch.optim.lr_scheduler import StepLR
-scheduler = StepLR(optimizer, step_size=5, gamma=0.2)
+# scheduler = StepLR(optimizer, step_size=5, gamma=0.2)
 
 def get_latent(image):
     with torch.no_grad():
@@ -268,7 +259,7 @@ def one_epoch(model, dataloader, criterion, optimizer, epoch):
     
     epoch_loss = epoch_loss / len(dataloader)
     print(f'Epoch {epoch+1} completed, Average Loss: {epoch_loss:.4f}')
-    scheduler.step()
+    # scheduler.step()
     return epoch_loss
 
 latent = get_latent(images[0])

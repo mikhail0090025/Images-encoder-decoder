@@ -35,13 +35,13 @@ def root():
     try:
         image_pairs = nn.combine_image_pairs([
             (nn.tanh_to_img(nn.images[0]), nn.tanh_to_img(nn.code_and_decode(nn.images[0]))),
-            (nn.tanh_to_img(nn.images[100]), nn.tanh_to_img(nn.code_and_decode(nn.images[100]))),
-            (nn.tanh_to_img(nn.images[200]), nn.tanh_to_img(nn.code_and_decode(nn.images[200]))),
-            (nn.tanh_to_img(nn.images[300]), nn.tanh_to_img(nn.code_and_decode(nn.images[300]))),
-            (nn.tanh_to_img(nn.images[400]), nn.tanh_to_img(nn.code_and_decode(nn.images[400]))),
-            (nn.tanh_to_img(nn.images[500]), nn.tanh_to_img(nn.code_and_decode(nn.images[500]))),
-            (nn.tanh_to_img(nn.images[600]), nn.tanh_to_img(nn.code_and_decode(nn.images[600]))),
-            (nn.tanh_to_img(nn.images[700]), nn.tanh_to_img(nn.code_and_decode(nn.images[700]))),
+            (nn.tanh_to_img(nn.images[100 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[100 * 3]))),
+            (nn.tanh_to_img(nn.images[200 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[200 * 3]))),
+            (nn.tanh_to_img(nn.images[300 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[300 * 3]))),
+            (nn.tanh_to_img(nn.images[400 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[400 * 3]))),
+            (nn.tanh_to_img(nn.images[500 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[500 * 3]))),
+            (nn.tanh_to_img(nn.images[600 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[600 * 3]))),
+            (nn.tanh_to_img(nn.images[700 * 3]), nn.tanh_to_img(nn.code_and_decode(nn.images[700 * 3]))),
             (nn.tanh_to_img(nn.images[-1]), nn.tanh_to_img(nn.code_and_decode(nn.images[-1]))),
         ])
         img = Image.fromarray(image_pairs)
@@ -57,7 +57,7 @@ def root():
 @app.post("/one_epoch")
 def one_epoch_endpoint():
     try:
-        nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer, 0)
+        nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.L1Loss(), nn.optimizer, 0)
         return Response("One epoch passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
@@ -65,7 +65,7 @@ def one_epoch_endpoint():
 @app.post("/one_batch")
 def one_batch_endpoint():
     try:
-        nn.one_batch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer)
+        nn.one_batch(nn.full_encoder, nn.dataloader, nn.nn.L1Loss(), nn.optimizer)
         return Response("One batch passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
@@ -74,7 +74,7 @@ def one_batch_endpoint():
 def five_epochs_endpoint():
     try:
         for i in range(5):
-            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer, i)
+            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.L1Loss(), nn.optimizer, i)
         return Response("5 epochs passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
@@ -83,7 +83,7 @@ def five_epochs_endpoint():
 def ten_epochs_endpoint():
     try:
         for i in range(10):
-            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.MSELoss(), nn.optimizer, i)
+            nn.one_epoch(nn.full_encoder, nn.dataloader, nn.nn.L1Loss(), nn.optimizer, i)
         return Response("10 epochs passed")
     except Exception as e:
         return Response(f"Internal server error: {e}", 500)
