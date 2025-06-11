@@ -109,8 +109,8 @@ class FullEncoder(nn.Module):
         super(FullEncoder, self).__init__()
 
         self.all_layers = nn.ModuleList([
-            Encoder(512),
-            Decoder(512)
+            Encoder(1536),
+            Decoder(1536)
         ])
     
     def forward(self, x):
