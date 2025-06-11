@@ -37,6 +37,8 @@ class Encoder(nn.Module):
     def __init__(self, latent_dim=512):
         super(Encoder, self).__init__()
 
+        self.latent_dim = latent_dim
+
         self.all_layers = nn.ModuleList([
             # 100x100 => 50x50
             nn.Conv2d(3, 32, 3, padding=1, stride=2),
@@ -67,30 +69,32 @@ class Decoder(nn.Module):
     def __init__(self, latent_dim=512):
         super(Decoder, self).__init__()
 
+        self.latent_dim = latent_dim
+
         self.all_layers = nn.ModuleList([
             nn.Linear(latent_dim, 64 * 25 * 25),
             nn.Unflatten(1, (64, 25, 25)),
 
             nn.Upsample(scale_factor=2, mode='nearest'),  # 25x25 => 50x50
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 32, 3, padding=1),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
 
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 32, 3, padding=1),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
 
             nn.Upsample(scale_factor=2, mode='nearest'),  # 50x50 => 100x100
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 32, 3, padding=1),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
 
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 32, 3, padding=1),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
 
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.Conv2d(64, 3, 3, padding=1),
+            nn.Conv2d(32, 32, 3, padding=1),
+            nn.Conv2d(32, 3, 3, padding=1),
             # nn.Tanh(),
         ])
     
@@ -105,8 +109,8 @@ class FullEncoder(nn.Module):
         super(FullEncoder, self).__init__()
 
         self.all_layers = nn.ModuleList([
-            Encoder(1024),
-            Decoder(1024)
+            Encoder(512),
+            Decoder(512)
         ])
     
     def forward(self, x):
@@ -117,6 +121,15 @@ class FullEncoder(nn.Module):
     def get_latent(self, x):
         x = self.all_layers[0](x)
         return x
+    
+    def image_from_latent(self, latent_vector):
+        # Преобразуем латентный вектор в тензор и прогоняем через декодер
+        latent_tensor = torch.tensor(latent_vector, dtype=torch.float32).unsqueeze(0).to(device)
+        with torch.no_grad():
+            output_tensor = self.all_layers[1](latent_tensor)  # (1, 3, 100, 100)
+        # Денармализация из [-1, 1] в [0, 255]
+        output_tensor = (output_tensor.squeeze(0).cpu().numpy().transpose(1, 2, 0) + 1) * 127.5
+        return output_tensor.astype(np.uint8)
 
 import download_dataset as dd
 from torch.optim.lr_scheduler import StepLR
@@ -126,8 +139,8 @@ images = dd.get_images()
 full_encoder = FullEncoder().to(device)
 
 dataset = LearningDataset(images)
-dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
-optimizer = optim.Adam(full_encoder.parameters(), lr=0.0002)
+dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+optimizer = optim.Adam(full_encoder.parameters(), lr=0.00002)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.2, patience=1)
 # scheduler = StepLR(optimizer, step_size=5, gamma=0.2)
 

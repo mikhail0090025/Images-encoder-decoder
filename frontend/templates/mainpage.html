@@ -5,9 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link rel="stylesheet" href="static/styles.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
     <h2>Encoder / Decoder</h2>
     <img src="http://localhost:5000/test_image" alt="">
+    <img src="http://localhost:5000/random_image" alt="">
+    <div id="graph"></div>
+    <script>
+        fetch('/get_graphics')
+            .then(response => response.json())
+            .then(data => {
+                // Парсим JSON графика
+                Plotly.react('graph', JSON.parse(data.graph), {});
+            })
+            .catch(error => console.error('Error:', error));
+    </script>
 </body>
 </html>
