@@ -140,7 +140,7 @@ full_encoder = FullEncoder().to(device)
 
 dataset = LearningDataset(images)
 dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
-optimizer = optim.Adam(full_encoder.parameters(), lr=0.00002)
+optimizer = optim.Adam(full_encoder.parameters(), lr=0.00002, betas=(0.95, 0.999))
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.2, patience=1)
 # scheduler = StepLR(optimizer, step_size=5, gamma=0.2)
 
