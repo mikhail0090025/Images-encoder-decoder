@@ -128,6 +128,19 @@ def random_image_endpoint():
     img = nn.full_encoder.image_from_latent(random_latent)
     return Response(content=nn.array_to_image(img), media_type="image/png") 
 
+import matplotlib.pyplot as plt
+@app.get("/representation_graphics")
+def representation_graphics_endpoint():
+    latents = nn.get_all_latents()
+    plt.figure(figsize=(10, 8))
+    plt.scatter(latents[:, 0], latents[:, 1])  # Assuming hidden_dim is 2 for visualization
+    plt.title("Encoded Representations")
+    plt.xlabel("Encoded Dimension 1")
+    plt.ylabel("Encoded Dimension 2")
+    plt.show()
+
+    return Response("") 
+
 from torchvision import transforms
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse

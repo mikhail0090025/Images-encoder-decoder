@@ -104,6 +104,53 @@ class Decoder(nn.Module):
         x = x.clamp(-1, 1)
         return x
 
+class SparseAutoencoder(nn.Module):
+    def __init__(self, latent_dim=1024, sparsity_target=0.05, lambda_reg=0.001):
+        super(SparseAutoencoder, self).__init__()
+
+        self.all_layers = nn.ModuleList([
+            Encoder(latent_dim),
+            Decoder(latent_dim)
+        ])
+
+        self.sparsity_target = sparsity_target  # Целевой уровень разреженности (5%)
+        self.lambda_reg = lambda_reg  # Коэффициент регуляризации
+
+    def forward(self, x):
+        latent = self.all_layers[0](x)
+        reconstructed = self.all_layers[1](latent)
+        return reconstructed
+
+    def sparsity_loss(self, latent):
+        # Средняя активация по батчу для каждого нейрона
+        batch_size = latent.size(0)
+        latent = torch.sigmoid(latent)
+        avg_activation = torch.mean(torch.abs(latent), dim=0)  # Среднее по батчу
+        # KL-дивергенция
+        kl_div = self.sparsity_target * torch.log(self.sparsity_target / (avg_activation + 1e-10)) + \
+                 (1 - self.sparsity_target) * torch.log((1 - self.sparsity_target) / (1 - avg_activation + 1e-10))
+        # print('-----------------------')
+        # print(avg_activation.min())
+        # print(avg_activation.max())
+        # print(kl_div.min())
+        # print(kl_div.max())
+        # print(torch.log(self.sparsity_target / (avg_activation + 1e-10)).min())
+        # print(torch.log(self.sparsity_target / (avg_activation + 1e-10)).max())
+        return torch.mean(kl_div)
+    
+    def get_latent(self, x):
+        x = self.all_layers[0](x)
+        return x
+    
+    def image_from_latent(self, latent_vector):
+        # Преобразуем латентный вектор в тензор и прогоняем через декодер
+        latent_tensor = torch.tensor(latent_vector, dtype=torch.float32).unsqueeze(0).to(device)
+        with torch.no_grad():
+            output_tensor = self.all_layers[1](latent_tensor)  # (1, 3, 100, 100)
+        # Денармализация из [-1, 1] в [0, 255]
+        output_tensor = (output_tensor.squeeze(0).cpu().numpy().transpose(1, 2, 0) + 1) * 127.5
+        return output_tensor.astype(np.uint8)
+
 class FullEncoder(nn.Module):
     def __init__(self):
         super(FullEncoder, self).__init__()
@@ -136,7 +183,7 @@ from torch.optim.lr_scheduler import StepLR
 
 images = dd.get_images()
 
-full_encoder = FullEncoder().to(device)
+full_encoder = SparseAutoencoder(latent_dim=1024, sparsity_target=0.05, lambda_reg=0.1).to(device)
 
 dataset = LearningDataset(images)
 dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
@@ -264,8 +311,10 @@ def one_epoch(model, dataloader, criterion, optimizer, epoch):
         
         optimizer.zero_grad()
         output = model(batch)
-        loss = criterion(output, batch)
-        
+        mse_loss = criterion(output, batch)
+        sparsity_loss = model.sparsity_loss(model.get_latent(batch))
+        loss = mse_loss + model.lambda_reg * sparsity_loss
+
         loss.backward()
         optimizer.step()
         
@@ -297,6 +346,16 @@ def tanh_to_img(array):
     img_array = ((array + 1) * 127.5).astype(np.uint8)
     return img_array
 
+def get_all_latents():
+    latents = []
+    for i, batch in enumerate(dataloader):
+        batch = batch.to(device)
+        batch_latents = full_encoder.get_latent(batch).detach().cpu().numpy()
+        latents.append(batch_latents)
+    
+    latents = np.vstack(latents)
+    return latents
+
 # for i in range(1):
 #     one_epoch(full_encoder, dataloader, nn.MSELoss(), optimizer, i)
 print('images[0].shape')
@@ -305,6 +364,9 @@ print('code_and_decode(images[0]).shape')
 print(code_and_decode(images[0]).shape)
 print('-------------------')
 
+latents = get_all_latents()
+print(latents)
+print(latents.shape)
 # Image.open(io.BytesIO(combine_images(images[0], code_and_decode(images[0])))).show()
 # Image.open(io.BytesIO(combine_images(images[200], code_and_decode(images[200])))).show()
 # Image.open(io.BytesIO(combine_images(images[400], code_and_decode(images[400])))).show()
